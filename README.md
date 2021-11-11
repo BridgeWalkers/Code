@@ -1,4 +1,4 @@
-# Saved
+# Code
 code for bridge 
 /*
  */
@@ -21,10 +21,13 @@ code for bridge
 #define PIN_BT      PINA
 #define DDR_BT      DDRA
 
+#define BUTTON_GREEN (1 << PA2)   // KNOP VOOR OPEN PIN 23
+#define BUTTON_RED  (1 << PA0)    // KNOP VOOR DICHT PIN 24
 #define DRUK_OPEN   (1 << PA3)    // DRUK sensor open
 #define DRUK_DICHT  (1 << PA4)    // DRUK sensor dicht
 #define S_BEHIND    (1 << PA5)    // Sensor behind the bridge
 #define S_INFRONT   (1 << PA6)    // Sensor in front of the bridge
+#define S_WIND      (1 << PA7)    // Flowmeter
 
 int main(void)
 {
@@ -35,9 +38,12 @@ int main(void)
 
     DDR_BT &= ~DRUK_DICHT;
     DDR_BT &= ~DRUK_OPEN;
+    DDR_BT &= ~BUTTON_GREEN;
+    DDR_BT &= ~BUTTON_RED;
 
     DDR_BT &= ~S_BEHIND;
     DDR_BT &= ~S_INFRONT;
+    DDR_BT &= ~S_WIND;
 
     // Insert code
 
@@ -65,25 +71,32 @@ int G = 0;
             PORT_LED |= LED_geel_ODROOD;
         }
 
-        if (!(PINA & (S_INFRONT))) // adds 1 to G for the servo's
+        if ((!(PINA & (S_INFRONT))) || (PINA & (BUTTON_GREEN))) // adds 1 to G for the servo's
         {
             G++;
             _delay_ms(1000);
-            if (!(PINA & (S_INFRONT)))  // turns led_groen on, led_geel_odrood off
+            if ((!(PINA & (S_INFRONT))) || (PINA & (BUTTON_GREEN)))// turns led_groen on, led_geel_odrood off
             {
                // flowmeter check if in if
-            PORT_LED |= LED_groen;
+            if(PINA & (S_WIND))   //aanpassing
+            {
+                _delay_ms(10000);//aanpassing
+                G = 0;               //aanpassing
+            }
+            else if(!(PINA & (S_WIND)))  //aanpassing
+            {
+                 PORT_LED |= LED_groen;
             PORT_LED &= ~LED_geel_ODROOD;
             _delay_ms(1000);
+            }
+
             if (G == 1)  // if statment is correct servo's go brrrrr
             {
             // servo omlaag
             servo1_set_percentage(100);
             servo2_set_percentage(-100);
             }
-
             }
-
 
             // brug gaat open
         }
@@ -91,10 +104,12 @@ int G = 0;
         {
            PORT_LED &= ~LED_BV_rood;
            _delay_ms(5000);
+           PORT_LED |= LED_BV_rood;
+           _delay_ms(5000);
            PORT_LED &= ~LED_groen;
            G = 0;
         }
-            if (!(PINA & (S_BEHIND)))  // checks if the aquatic vehicle has passed the bridge
+            if ((!(PINA & (S_BEHIND))) || (PINA & (BUTTON_RED)))  // checks if the aquatic vehicle has passed the bridge
             {
 
                 if (G == 0)  // checks if G has been reseted if this is true opens servo's
@@ -105,7 +120,6 @@ int G = 0;
             servo2_set_percentage(100);
             _delay_ms(1000);
                 }
-
             }
     }
 
